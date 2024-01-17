@@ -12,8 +12,8 @@
   "commands": [
     {
       "name": "index",
-      "title": "Show Detail",
-      "description": "Template with a plain detail view",
+      "title": "Timecamp Start/Stop Tasks",
+      "description": "Start/Stop tasks and edit active timer's notes",
       "mode": "view"
     }
   ],

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Icon, List, ActionPanel, Action, Detail, Color, Form } from "@raycast/api";
+import { useNavigation, Icon, List, ActionPanel, Action, Color, Form } from "@raycast/api";
 
 const fetch = require('node-fetch');
 
@@ -11,10 +11,29 @@ type Task = {
   level: number | string;
   display_name?: string;
   color?: string;
+  timer_info?: TimerInfo;
 };
 
-function UpdateTimerNote({ task, note }) {
-  const updateNote = async (entryId: string | number,noteString: string) => {
+type TimerInfo = {
+  isTimerRunning: boolean;
+  elapsed: number | string;
+  entry_id: number | string;
+  timer_id: number | string;
+  task_id: number | string;
+  start_time: string;
+  name: string;
+  note: string;
+  browser_plugin_button_hash?: string;
+}
+
+type TimerEntryNoteFormProps = {
+  activeTask: Task;
+  setActiveTask: (task: Task | null) => void;
+}
+
+function TimerEntryNoteForm({ activeTask, setActiveTask }: TimerEntryNoteFormProps) {
+  const { pop } = useNavigation();
+  const updateNote = async (entryId: number | string, noteString: string, close: boolean) => {
     const url = 'https://app.timecamp.com/third_party/api/entries';
     const options = {
       method: 'PUT',
@@ -23,13 +42,18 @@ function UpdateTimerNote({ task, note }) {
         Accept: 'application/json',
         Authorization: 'Bearer 1e3472fe62db7491cb0fc20479'
       },
-      body: `{"id":${entryId},"note":${noteString}}`
+      body: `{"id":${parseInt(entryId)},"note":"${noteString}"}`
     };
 
     try {
       const response = await fetch(url, options);
       const data = await response.json();
-      console.log('Entry Update data: ',data);
+      if (data && data.note == noteString && close) {
+        const tempTask = activeTask
+        tempTask.timer_info = data;
+        setActiveTask(tempTask)
+        pop()
+      }
     } catch (error) {
       console.error(error);
     }
@@ -39,24 +63,32 @@ function UpdateTimerNote({ task, note }) {
     <Form
       actions={
         <ActionPanel>
-          <Action.SubmitForm title="Note" onSubmit={() => console.log(values)} />
+          <Action.SubmitForm 
+            title="Note" 
+            onSubmit={(values) => updateNote(activeTask.timer_info.entry_id,values.note,true)} 
+          />
         </ActionPanel>
       }
     >
-      <Form.TextArea id="description" defaultValue={note} />
+      <Form.TextArea 
+        id="note" 
+        title="Note"
+        autoFocus={true}
+        defaultValue={activeTask.timer_info.note}
+      />
     </Form>
   );
 }
 
-function Stage3() {
-  return <Detail markdown="# Hello World its me" />;
+type ActiveTaskItemProps = {
+  activeTask: Task;
+  setActiveTask: (task: Task | null) => void;
 }
-
-const ActiveTaskItem: React.FC<Task> = ({ task }) => {
+const ActiveTaskItem = ({ activeTask, setActiveTask }: ActiveTaskItemProps) => {
   const [timer, setTimer] = useState<string>('00:00:00');
 
   useEffect(() => {
-    const startTimeDate = new Date(task.timer_info.start_time);
+    const startTimeDate = new Date(activeTask.timer_info.start_time);
 
     const interval = setInterval(() => {
       const now = new Date();
@@ -76,21 +108,64 @@ const ActiveTaskItem: React.FC<Task> = ({ task }) => {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [task]);
+  }, [activeTask]);
+
+  async function stopTask (task: Task) {
+    console.log('ending task',task)
+    const url = 'https://app.timecamp.com/third_party/api/timer';
+    const options = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        Authorization: 'Bearer 1e3472fe62db7491cb0fc20479'
+      },
+      body: `{"action":"stop","task_id":"${task.task_id}"}`
+    };
+
+    try {
+      const response = await fetch(url, options);
+      const data = await response.json();
+      console.log('stopped it: ',data);
+      if (data.entry_id) {
+        setActiveTask(null)
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
 
   return (
     <List.Item 
-      key={task.task_id}
-      icon={{ source: Icon.Stop, tintColor: task.color }} 
-      title={task.display_name}
-      // subtitle={timer}
+      key={activeTask.task_id}
+      icon={{ source: Icon.Stop, tintColor: activeTask.color }} 
+      title={activeTask.display_name}
       accessories={[
-        { icon: {source: Icon.CommandSymbol, tintColor: Color.Red }, tag: {value: " + S", color: Color.Red}},
-        { icon: {source: Icon.Clock, tintColor: Color.Green}, text: {value: timer, color: Color.Green} },
+        {
+          icon: {source: Icon.CommandSymbol, tintColor: Color.Red },
+          tag: {value: " + S", color: Color.Red}
+        },
+        {
+          icon: {source: Icon.Clock, tintColor: Color.Green},
+          text: {value: timer, color: Color.Green}
+        },
       ]} 
       actions={
-        <ActionPanel title="#1 in raycast/extensions">
-          <Action.Push title="Open This" target={<UpdateTimerNote task={task} />}/>
+        <ActionPanel title="Entry Commands">
+          <Action.Push
+            title="Open Entry Note" 
+            target={
+              <TimerEntryNoteForm
+                activeTask={activeTask} 
+                setActiveTask={setActiveTask}
+              />
+            }
+          />
+          <Action 
+            title="End Task" 
+            onAction={() => stopTask(activeTask)} 
+            shortcut={{ modifiers: ["cmd"], key: "s" }}
+          />
         </ActionPanel>
       }/>
   );
@@ -145,7 +220,6 @@ export default function Command() {
               }
             }
           }
-          // console.log(filteredData)
           setTasks(filteredData);
         } catch (error) {
           console.error(error);
@@ -155,10 +229,31 @@ export default function Command() {
       fetchData()
       getActiveTask()
     }
-  },[])
+  },[activeTask])
 
-  function startTask (task: Task) {
+  async function startTask (task: Task) {
     console.log('starting task',task)
+    const url = 'https://app.timecamp.com/third_party/api/timer';
+    const options = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        Authorization: 'Bearer 1e3472fe62db7491cb0fc20479'
+      },
+      body: `{"action":"start","task_id":"${task.task_id}"}`
+    };
+
+    try {
+      const response = await fetch(url, options);
+      const data = await response.json();
+      console.log('Started it: ',data);
+      if (data.new_timer_id) {
+        getActiveTask()
+      }
+    } catch (error) {
+      console.error(error);
+    }
   }
 
   async function getTasks (taskId: number | string) {
@@ -198,13 +293,14 @@ export default function Command() {
 
       if (data && data.isTimerRunning) {
         const taskFetch = await getTasks(data.task_id);
-        let displayName: string;
-        taskFetch.breadcrumb.forEach((crumb: string) => {
-          displayName = displayName ? `${displayName} / ${crumb.name}` : crumb.name 
+        type Crumb = {
+          task_id: number | string;
+          name: string;
+        }
+        taskFetch.breadcrumb.forEach((crumb: Crumb) => {
+          taskFetch.display_name = taskFetch.display_name ? `${taskFetch.display_name} / ${crumb.name}` : crumb.name 
         })
-        taskFetch.display_name = displayName;
         taskFetch.timer_info = data;
-        console.log('activeTask',taskFetch)
         setActiveTask(taskFetch)
       }
     } catch (error) {
@@ -217,12 +313,13 @@ export default function Command() {
       {activeTask ? (
         <List.Section title="Active Timer">
           <ActiveTaskItem
-            task={activeTask}
+            activeTask={activeTask}
+            setActiveTask={setActiveTask}
           />
         </List.Section>
       ) : null}
       <List.Section title="Tasks">
-        {tasks.map((task) => {
+        {tasks.map((task: Task) => {
           if (activeTask && activeTask.task_id == task.task_id) return null
 
           return (
@@ -230,13 +327,14 @@ export default function Command() {
               key={task.task_id}
               icon={{ source: Icon.Dot, tintColor: task.color }} 
               title={task.display_name}
-              subtitle="0,5 Liter" 
-              accessories={[{ text: "Germany" }]} 
+              // subtitle="0,5 Liter" 
+              // accessories={[{ text: "Germany" }]} 
               actions={
                 <ActionPanel title="#1 in raycast/extensions">
-                  <Action.Push title="Open This" target={<UpdateTimerNote task={task} />}/>
+                  <Action title="Open This" onAction={() => startTask(task)} />
                 </ActionPanel>
-              }/>
+              }
+            />
           )
         })}
       </List.Section>
