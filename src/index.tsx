@@ -48,6 +48,7 @@ function TimerEntryNoteForm({ activeTask, setActiveTask }: TimerEntryNoteFormPro
     try {
       const response = await fetch(url, options);
       const data = await response.json();
+      console.log('Changed Note: ',data)
       if (data && data.note == noteString && close) {
         const tempTask = activeTask
         tempTask.timer_info = data;
@@ -111,7 +112,6 @@ const ActiveTaskItem = ({ activeTask, setActiveTask }: ActiveTaskItemProps) => {
   }, [activeTask]);
 
   async function stopTask (task: Task) {
-    console.log('ending task',task)
     const url = 'https://app.timecamp.com/third_party/api/timer';
     const options = {
       method: 'POST',
@@ -126,7 +126,6 @@ const ActiveTaskItem = ({ activeTask, setActiveTask }: ActiveTaskItemProps) => {
     try {
       const response = await fetch(url, options);
       const data = await response.json();
-      console.log('stopped it: ',data);
       if (data.entry_id) {
         setActiveTask(null)
       }
@@ -138,8 +137,9 @@ const ActiveTaskItem = ({ activeTask, setActiveTask }: ActiveTaskItemProps) => {
   return (
     <List.Item 
       key={activeTask.task_id}
+      id={activeTask.task_id.toString()}
       icon={{ source: Icon.Stop, tintColor: activeTask.color }} 
-      title={activeTask.display_name}
+      title={activeTask.display_name ? activeTask.display_name : activeTask.name}
       accessories={[
         {
           icon: {source: Icon.CommandSymbol, tintColor: Color.Red },
@@ -174,6 +174,7 @@ const ActiveTaskItem = ({ activeTask, setActiveTask }: ActiveTaskItemProps) => {
 export default function Command() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
+  const [selectedItemId, setSelectedItemId] = useState<string>('');
 
   useEffect(() => {
     if(tasks.length == 0) {
@@ -232,7 +233,6 @@ export default function Command() {
   },[activeTask])
 
   async function startTask (task: Task) {
-    console.log('starting task',task)
     const url = 'https://app.timecamp.com/third_party/api/timer';
     const options = {
       method: 'POST',
@@ -247,7 +247,6 @@ export default function Command() {
     try {
       const response = await fetch(url, options);
       const data = await response.json();
-      console.log('Started it: ',data);
       if (data.new_timer_id) {
         getActiveTask()
       }
@@ -257,7 +256,6 @@ export default function Command() {
   }
 
   async function getTasks (taskId: number | string) {
-    console.log('getting task', taskId)
     const url = `https://app.timecamp.com/third_party/api/tasks?status=active${taskId ? '&task_id=' + taskId : ''}`
     const options = {
       method: 'GET',
@@ -267,7 +265,6 @@ export default function Command() {
     try {
       const response = await fetch(url, options);
       const data = await response.json();
-      console.log('getTask data',data)
       return data
     } catch (error) {
       console.error(error)
@@ -289,7 +286,6 @@ export default function Command() {
     try {
       const response = await fetch(url, options);
       const data = await response.json();
-      console.log("active timer data: ",data);
 
       if (data && data.isTimerRunning) {
         const taskFetch = await getTasks(data.task_id);
@@ -302,6 +298,7 @@ export default function Command() {
         })
         taskFetch.timer_info = data;
         setActiveTask(taskFetch)
+        setSelectedItemId(taskFetch.task_id.toString())
       }
     } catch (error) {
       console.error(error);
@@ -309,9 +306,10 @@ export default function Command() {
   }
 
   return (
-    <List filtering={{keepSectionOrder: true}}>
+    <List filtering={{keepSectionOrder: true}} selectedItemId={selectedItemId}>
       {activeTask ? (
-        <List.Section title="Active Timer">
+        <List.Section 
+          title="Active Timer">
           <ActiveTaskItem
             activeTask={activeTask}
             setActiveTask={setActiveTask}
@@ -325,8 +323,9 @@ export default function Command() {
           return (
             <List.Item 
               key={task.task_id}
+              id={task.task_id.toString()}
               icon={{ source: Icon.Dot, tintColor: task.color }} 
-              title={task.display_name}
+              title={task.display_name ? task.display_name : task.name}
               // subtitle="0,5 Liter" 
               // accessories={[{ text: "Germany" }]} 
               actions={
