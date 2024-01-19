@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigation, Icon, List, ActionPanel, Action, Color, Form } from "@raycast/api";
+import { useNavigation, getPreferenceValues, Icon, List, ActionPanel, Action, Color, Form } from "@raycast/api";
 
 const fetch = require('node-fetch');
 
@@ -31,6 +31,14 @@ type TimerEntryNoteFormProps = {
   setActiveTask: (task: Task | null) => void;
 }
 
+interface Preferences {
+  timecamp_api_token: string;
+}
+
+const preferences = getPreferenceValues<Preferences>();
+const token = preferences.timecamp_api_token;
+console.log('token: ',token)
+
 function TimerEntryNoteForm({ activeTask, setActiveTask }: TimerEntryNoteFormProps) {
   const { pop } = useNavigation();
   const updateNote = async (entryId: number | string, noteString: string, close: boolean) => {
@@ -40,7 +48,7 @@ function TimerEntryNoteForm({ activeTask, setActiveTask }: TimerEntryNoteFormPro
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
-        Authorization: 'Bearer 1e3472fe62db7491cb0fc20479'
+        Authorization: `Bearer ${token}`
       },
       body: `{"id":${parseInt(entryId)},"note":"${noteString}"}`
     };
@@ -75,7 +83,7 @@ function TimerEntryNoteForm({ activeTask, setActiveTask }: TimerEntryNoteFormPro
         id="note" 
         title="Note"
         autoFocus={true}
-        defaultValue={activeTask.timer_info.note}
+        defaultValue={activeTask.timer_info?.note}
       />
     </Form>
   );
@@ -118,7 +126,7 @@ const ActiveTaskItem = ({ activeTask, setActiveTask }: ActiveTaskItemProps) => {
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
-        Authorization: 'Bearer 1e3472fe62db7491cb0fc20479'
+        Authorization: `Bearer ${token}`
       },
       body: `{"action":"stop","task_id":"${task.task_id}"}`
     };
@@ -140,6 +148,7 @@ const ActiveTaskItem = ({ activeTask, setActiveTask }: ActiveTaskItemProps) => {
       id={activeTask.task_id.toString()}
       icon={{ source: Icon.Stop, tintColor: activeTask.color }} 
       title={activeTask.display_name ? activeTask.display_name : activeTask.name}
+      subtitle={activeTask.timer_info ? activeTask.timer_info.note : ''}
       accessories={[
         {
           icon: {source: Icon.CommandSymbol, tintColor: Color.Red },
@@ -153,7 +162,7 @@ const ActiveTaskItem = ({ activeTask, setActiveTask }: ActiveTaskItemProps) => {
       actions={
         <ActionPanel title="Entry Commands">
           <Action.Push
-            title="Open Entry Note" 
+            title="Edit Entry Note" 
             target={
               <TimerEntryNoteForm
                 activeTask={activeTask} 
@@ -182,7 +191,7 @@ export default function Command() {
         const url = "https://app.timecamp.com/third_party/api/tasks?status=active"
         const options = {
           method: 'GET',
-          headers: {Accept: 'application/json', Authorization: 'Bearer 1e3472fe62db7491cb0fc20479'}
+          headers: {Accept: 'application/json', Authorization: `Bearer ${token}`}
         };
 
         try {
@@ -239,7 +248,7 @@ export default function Command() {
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
-        Authorization: 'Bearer 1e3472fe62db7491cb0fc20479'
+        Authorization: `Bearer ${token}`
       },
       body: `{"action":"start","task_id":"${task.task_id}"}`
     };
@@ -259,7 +268,7 @@ export default function Command() {
     const url = `https://app.timecamp.com/third_party/api/tasks?status=active${taskId ? '&task_id=' + taskId : ''}`
     const options = {
       method: 'GET',
-      headers: {Accept: 'application/json', Authorization: 'Bearer 1e3472fe62db7491cb0fc20479'}
+      headers: {Accept: 'application/json', Authorization: `Bearer ${token}`}
     };
 
     try {
@@ -278,7 +287,7 @@ export default function Command() {
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
-        Authorization: 'Bearer 1e3472fe62db7491cb0fc20479'
+        Authorization: `Bearer ${token}`
       },
       body: '{"action":"status"}'
     };
@@ -306,7 +315,11 @@ export default function Command() {
   }
 
   return (
-    <List filtering={{keepSectionOrder: true}} selectedItemId={selectedItemId}>
+    <List 
+      filtering={{keepSectionOrder: true}} 
+      selectedItemId={selectedItemId}
+      navigationTitle="Tasks"
+    >
       {activeTask ? (
         <List.Section 
           title="Active Timer">
@@ -330,7 +343,7 @@ export default function Command() {
               // accessories={[{ text: "Germany" }]} 
               actions={
                 <ActionPanel title="#1 in raycast/extensions">
-                  <Action title="Open This" onAction={() => startTask(task)} />
+                  <Action title="Start Task" onAction={() => startTask(task)} />
                 </ActionPanel>
               }
             />
