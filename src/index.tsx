@@ -31,13 +31,16 @@ type TimerEntryNoteFormProps = {
   setActiveTask: (task: Task | null) => void;
 }
 
+type FormData = {
+  note: string;
+}
+
 interface Preferences {
   timecamp_api_token: string;
 }
 
 const preferences = getPreferenceValues<Preferences>();
 const token = preferences.timecamp_api_token;
-console.log('token: ',token)
 
 function TimerEntryNoteForm({ activeTask, setActiveTask }: TimerEntryNoteFormProps) {
   const { pop } = useNavigation();
@@ -50,7 +53,7 @@ function TimerEntryNoteForm({ activeTask, setActiveTask }: TimerEntryNoteFormPro
         Accept: 'application/json',
         Authorization: `Bearer ${token}`
       },
-      body: `{"id":${parseInt(entryId)},"note":"${noteString}"}`
+      body: `{"id":${entryId},"note":"${noteString}"}`
     };
 
     try {
@@ -74,7 +77,7 @@ function TimerEntryNoteForm({ activeTask, setActiveTask }: TimerEntryNoteFormPro
         <ActionPanel>
           <Action.SubmitForm 
             title="Note" 
-            onSubmit={(values) => updateNote(activeTask.timer_info.entry_id,values.note,true)} 
+            onSubmit={(values: FormData) => updateNote(activeTask.timer_info ? activeTask.timer_info.entry_id : "",values.note,true)} 
           />
         </ActionPanel>
       }
@@ -97,7 +100,7 @@ const ActiveTaskItem = ({ activeTask, setActiveTask }: ActiveTaskItemProps) => {
   const [timer, setTimer] = useState<string>('00:00:00');
 
   useEffect(() => {
-    const startTimeDate = new Date(activeTask.timer_info.start_time);
+    const startTimeDate = new Date(activeTask.timer_info ? activeTask.timer_info.start_time : "");
 
     const interval = setInterval(() => {
       const now = new Date();

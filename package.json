@@ -2,7 +2,7 @@
   "$schema": "https://www.raycast.com/schemas/extension.json",
   "name": "timecamp",
   "title": "Timecamp",
-  "description": "",
+  "description": "Use this extension to easily start and stop timecamp tasks.",
   "icon": "timecamp-logo.svg",
   "author": "iAmKevinCruz",
   "owner": "varfaj",
