@@ -92,7 +92,6 @@ function TimerEntryNoteForm({ activeTask, setActiveTask }: TimerEntryNoteFormPro
       };
       const response = await fetch(url, options);
       const data = (await response.json()) as Data;
-      console.log("Changed Note: ", data);
       if (data && data.note == noteString && close) {
         const tempTask = activeTask;
         if (tempTask.timer_info) {
