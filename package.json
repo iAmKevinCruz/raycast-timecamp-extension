@@ -1,10 +1,11 @@
 {
   "$schema": "https://www.raycast.com/schemas/extension.json",
-  "name": "timecamp-v1",
-  "title": "Timecamp v1",
+  "name": "timecamp",
+  "title": "Timecamp",
   "description": "",
-  "icon": "command-icon.png",
+  "icon": "timecamp-logo.svg",
   "author": "iAmKevinCruz",
+  "owner": "varfaj",
   "categories": [
     "Productivity"
   ],
