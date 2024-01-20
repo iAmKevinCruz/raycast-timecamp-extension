@@ -73,18 +73,20 @@ function TimerEntryNoteForm({ activeTask, setActiveTask }: TimerEntryNoteFormPro
 
   return (
     <Form
+      navigationTitle="Edit Entry"
       actions={
         <ActionPanel>
           <Action.SubmitForm 
-            title="Note" 
+            title="Save Edits" 
             onSubmit={(values: FormData) => updateNote(activeTask.timer_info ? activeTask.timer_info.entry_id : "",values.note,true)} 
           />
         </ActionPanel>
       }
     >
-      <Form.TextArea 
+      <Form.TextField 
         id="note" 
         title="Note"
+        placeholder="Enter task note"
         autoFocus={true}
         defaultValue={activeTask.timer_info?.note}
       />
@@ -163,7 +165,7 @@ const ActiveTaskItem = ({ activeTask, setActiveTask }: ActiveTaskItemProps) => {
         },
       ]} 
       actions={
-        <ActionPanel title="Entry Commands">
+        <ActionPanel title="Active Task">
           <Action.Push
             title="Edit Entry Note" 
             target={
@@ -321,7 +323,7 @@ export default function Command() {
     <List 
       filtering={{keepSectionOrder: true}} 
       selectedItemId={selectedItemId}
-      navigationTitle="Tasks"
+      searchBarPlaceholder="Search Task"
     >
       {activeTask ? (
         <List.Section 
@@ -342,10 +344,8 @@ export default function Command() {
               id={task.task_id.toString()}
               icon={{ source: Icon.Dot, tintColor: task.color }} 
               title={task.display_name ? task.display_name : task.name}
-              // subtitle="0,5 Liter" 
-              // accessories={[{ text: "Germany" }]} 
               actions={
-                <ActionPanel title="#1 in raycast/extensions">
+                <ActionPanel title="Inactive Task">
                   <Action title="Start Task" onAction={() => startTask(task)} />
                 </ActionPanel>
               }
