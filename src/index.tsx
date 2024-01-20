@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigation, getPreferenceValues, Icon, List, ActionPanel, Action, Color, Form } from "@raycast/api";
-import fetch from 'node-fetch'
+import fetch from "node-fetch";
 
 interface TaskResponse {
   [key: string]: Task;
@@ -42,13 +42,13 @@ type TimerStart = {
   note: string | null;
   stopped_timer?: string | number;
   elapsed?: string | number;
-}
+};
 
 type TimerStop = {
   elapsed: number | string;
   entry_id: number | string;
   entry_time: number | string;
-}
+};
 
 type TimerEntryNoteFormProps = {
   activeTask: Task;
@@ -89,9 +89,9 @@ function TimerEntryNoteForm({ activeTask, setActiveTask }: TimerEntryNoteFormPro
         task_id: number | string;
         start_time_hour: string;
         end_time_hour: string;
-      }
+      };
       const response = await fetch(url, options);
-      const data = await response.json() as Data;
+      const data = (await response.json()) as Data;
       console.log("Changed Note: ", data);
       if (data && data.note == noteString && close) {
         const tempTask = activeTask;
@@ -175,7 +175,7 @@ const ActiveTaskItem = ({ activeTask, setActiveTask }: ActiveTaskItemProps) => {
 
     try {
       const response = await fetch(url, options);
-      const data = await response.json() as TimerStop;
+      const data = (await response.json()) as TimerStop;
       if (data.entry_id) {
         setActiveTask(null);
       }
@@ -230,7 +230,7 @@ export default function Command() {
 
         try {
           const response = await fetch(url, options);
-          const data = await response.json() as TaskResponse;
+          const data = (await response.json()) as TaskResponse;
           const filteredData: Task[] = [];
 
           // find the last level of every task and build the heirchy in the task.display_name
@@ -287,10 +287,9 @@ export default function Command() {
       body: `{"action":"start","task_id":"${task.task_id}"}`,
     };
 
-
     try {
       const response = await fetch(url, options);
-      const data = await response.json() as TimerStart;
+      const data = (await response.json()) as TimerStart;
       if (data.new_timer_id) {
         getActiveTask();
       }
@@ -329,10 +328,10 @@ export default function Command() {
 
     try {
       const response = await fetch(url, options);
-      const data = await response.json() as TimerInfo;
+      const data = (await response.json()) as TimerInfo;
 
       if (data && data.isTimerRunning) {
-        const taskFetch = await getTasks(data.task_id) as Task;
+        const taskFetch = (await getTasks(data.task_id)) as Task;
         taskFetch.breadcrumb.forEach((crumb: Crumb) => {
           taskFetch.display_name = taskFetch.display_name ? `${taskFetch.display_name} / ${crumb.name}` : crumb.name;
         });
