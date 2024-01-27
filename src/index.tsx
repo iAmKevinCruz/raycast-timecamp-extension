@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { useNavigation, getPreferenceValues, Icon, List, ActionPanel, Action, Color, Form } from "@raycast/api";
+import { useNavigation, getPreferenceValues, Icon, List, ActionPanel, Action, Color, Form, Cache } from "@raycast/api";
+import { useFetch, useCachedState } from "@raycast/utils";
 import fetch from "node-fetch";
 
 interface TaskResponse {
@@ -135,7 +136,7 @@ type ActiveTaskItemProps = {
   setActiveTask: (task: Task | null) => void;
 };
 const ActiveTaskItem = ({ activeTask, setActiveTask }: ActiveTaskItemProps) => {
-  const [timer, setTimer] = useState<string>("00:00:00");
+  const [timer, setTimer] = useCachedState<string>("timer","00:00:00");
 
   useEffect(() => {
     const startTimeDate = new Date(activeTask.timer_info ? activeTask.timer_info.start_time : "");
@@ -214,144 +215,121 @@ const ActiveTaskItem = ({ activeTask, setActiveTask }: ActiveTaskItemProps) => {
 };
 
 export default function Command() {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [activeTask, setActiveTask] = useState<Task | null>(null);
-  const [selectedItemId, setSelectedItemId] = useState<string>("");
+  const [tasks, setTasks] = useCachedState<Task[]>("tasks",[]);
+  const [activeTask, setActiveTask] = useCachedState<Task | null>("activeTask",null);
+  const [selectedItemId, setSelectedItemId] = useCachedState<string>("selectedItemId","");
+  const { isLoading, data, mutate } = useFetch("https://app.timecamp.com/third_party/api/tasks?status=active", {
+    method: "GET",
+    headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
+    keepPreviousData: true,
+    initialData: tasks
+  });
+  const { isLoading: isLoadingStartTask, data: dataStartTask, mutate: mutateStartTask } = useFetch("https://app.timecamp.com/third_party/api/timer", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    execute: false,
+    onData: startTask
+  });
+  const { isLoading: isLoadingActiveTask, data: dataActiveTask, mutate: mutateActiveTask, revalidate: revalidateActiveTask } = useFetch("https://app.timecamp.com/third_party/api/timer", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: '{"action":"status"}',
+    keepPreviousData: true,
+    initialData: activeTask,
+    onData: getActiveTask
+  });
 
-  useEffect(() => {
-    if (tasks.length == 0) {
-      const fetchData = async () => {
-        const url = "https://app.timecamp.com/third_party/api/tasks?status=active";
-        const options = {
-          method: "GET",
-          headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
-        };
+  const filteredData: Task[] = [];
 
-        try {
-          const response = await fetch(url, options);
-          const data = (await response.json()) as TaskResponse;
-          const filteredData: Task[] = [];
+  // find the last level of every task and build the heirchy in the task.display_name
+  const processChildTasks = (parentTaskId: string | number, displayName: string) => {
+    for (const key in data) {
+      const task = data[key];
+      if (task.name.includes("ARCHIVED")) continue;
 
-          // find the last level of every task and build the heirchy in the task.display_name
-          const processChildTasks = (parentTaskId: string | number, displayName: string) => {
-            for (const key in data) {
-              const task = data[key];
-              if (task.name.includes("ARCHIVED")) continue;
-
-              if (task.parent_id == parentTaskId) {
-                const newDisplayName = displayName ? `${displayName} / ${task.name}` : task.name;
-                if (task.hasChildren) {
-                  processChildTasks(task.task_id, newDisplayName);
-                } else {
-                  task.display_name = newDisplayName;
-                  filteredData.push(task);
-                }
-              }
-            }
-          };
-
-          for (const key in data) {
-            const task = data[key];
-            if (task.name.includes("ARCHIVED")) continue;
-
-            if (task.level == 1) {
-              if (task.hasChildren) {
-                processChildTasks(task.task_id, task.name);
-              } else {
-                task.display_name = task.name;
-                filteredData.push(task);
-              }
-            }
-          }
-          setTasks(filteredData);
-        } catch (error) {
-          console.error(error);
+      if (task.parent_id == parentTaskId) {
+        const newDisplayName = displayName ? `${displayName} / ${task.name}` : task.name;
+        if (task.hasChildren) {
+          processChildTasks(task.task_id, newDisplayName);
+        } else {
+          task.display_name = newDisplayName;
+          filteredData.push(task);
         }
-      };
-
-      fetchData();
-      getActiveTask();
-    }
-  }, [activeTask]);
-
-  async function startTask(task: Task) {
-    const url = "https://app.timecamp.com/third_party/api/timer";
-    const options = {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: `{"action":"start","task_id":"${task.task_id}"}`,
-    };
-
-    try {
-      const response = await fetch(url, options);
-      const data = (await response.json()) as TimerStart;
-      if (data.new_timer_id) {
-        getActiveTask();
       }
-    } catch (error) {
-      console.error(error);
     }
+  };
+
+  if (data && !isLoading) {
+    for (const key in data) {
+      const task = data[key];
+      if (task.name.includes("ARCHIVED")) continue;
+
+      if (task.level == 1) {
+        if (task.hasChildren) {
+          processChildTasks(task.task_id, task.name);
+        } else {
+          task.display_name = task.name;
+          filteredData.push(task);
+        }
+      }
+    }
+    setTasks(filteredData);
   }
 
-  async function getTasks(taskId: number | string) {
-    const url = `https://app.timecamp.com/third_party/api/tasks?status=active${taskId ? "&task_id=" + taskId : ""}`;
-    const options = {
-      method: "GET",
-      headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
-    };
-
+  async function startTask (task: Task) {
     try {
-      const response = await fetch(url, options);
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error(error);
+      await mutateActiveTask(
+        fetch("https://app.timecamp.com/third_party/api/timer", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ action: "start", task_id: task.task_id })
+        }),
+        {
+          shouldRevalidateAfter: true
+        }
+      );
+    } catch (err) {
+      console.log('error starting task',err)
     }
+
+    return data
   }
 
-  async function getActiveTask() {
-    const url = "https://app.timecamp.com/third_party/api/timer";
-    const options = {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: '{"action":"status"}',
-    };
-
-    try {
-      const response = await fetch(url, options);
-      const data = (await response.json()) as TimerInfo;
-
-      if (data && data.isTimerRunning) {
-        const taskFetch = (await getTasks(data.task_id)) as Task;
-        taskFetch.breadcrumb.forEach((crumb: Crumb) => {
-          taskFetch.display_name = taskFetch.display_name ? `${taskFetch.display_name} / ${crumb.name}` : crumb.name;
-        });
-        taskFetch.timer_info = data;
-        setActiveTask(taskFetch);
-        setSelectedItemId(taskFetch.task_id.toString());
+  function getActiveTask(data) {
+    if (data) {
+      if (data.isTimerRunning) {
+        const findTask = tasks.find(task => task.task_id == data.task_id);
+        findTask.timer_info = data;
+        setActiveTask(findTask);
+        setSelectedItemId(findTask.task_id.toString());
+      } else if (!data.isTimerRunning) {
+        setActiveTask(null)
+        setSelectedItemId("");
       }
-    } catch (error) {
-      console.error(error);
     }
   }
 
   return (
-    <List filtering={{ keepSectionOrder: true }} selectedItemId={selectedItemId} searchBarPlaceholder="Search Task">
+    <List isLoading={isLoading} filtering={{ keepSectionOrder: true }} selectedItemId={selectedItemId} searchBarPlaceholder="Search Task">
       {activeTask ? (
         <List.Section title="Active Timer">
           <ActiveTaskItem activeTask={activeTask} setActiveTask={setActiveTask} />
         </List.Section>
       ) : null}
       <List.Section title="Tasks">
-        {tasks.map((task: Task) => {
+        {(tasks || []).map((task: Task) => {
           if (activeTask && activeTask.task_id == task.task_id) return null;
 
           return (
