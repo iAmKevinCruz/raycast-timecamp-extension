@@ -3,7 +3,7 @@ import { useNavigation, getPreferenceValues, Icon, List, ActionPanel, Action, Co
 import { useFetch, useCachedState } from "@raycast/utils";
 import fetch from "node-fetch";
 
-interface TaskResponse {
+interface TasksResponse {
   [key: string]: Task;
 }
 
@@ -16,7 +16,7 @@ type Task = {
   display_name?: string;
   color?: string;
   timer_info?: TimerInfo;
-  breadcrumb: Crumb[];
+  breadcrumb?: Crumb[];
 };
 
 type Crumb = {
@@ -36,21 +36,6 @@ type TimerInfo = {
   browser_plugin_button_hash?: string;
 };
 
-type TimerStart = {
-  new_timer_id: number | string;
-  entry_id: number | string;
-  name: string;
-  note: string | null;
-  stopped_timer?: string | number;
-  elapsed?: string | number;
-};
-
-type TimerStop = {
-  elapsed: number | string;
-  entry_id: number | string;
-  entry_time: number | string;
-};
-
 type TimerEntryNoteFormProps = {
   activeTask: Task;
   setActiveTask: (task: Task | null) => void;
@@ -68,7 +53,7 @@ const preferences = getPreferenceValues<Preferences>();
 const token = preferences.timecamp_api_token;
 
 function TimerEntryNoteForm({ activeTask, setActiveTask }: TimerEntryNoteFormProps) {
-  const { isLoading, data, mutate, revalidate } = useFetch("https://app.timecamp.com/third_party/api/entries", {
+  const { mutate } = useFetch("https://app.timecamp.com/third_party/api/entries", {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -78,6 +63,7 @@ function TimerEntryNoteForm({ activeTask, setActiveTask }: TimerEntryNoteFormPro
     execute: false
   });
   const { pop } = useNavigation();
+
   const updateNote = async (entryId: number | string, noteString: string) => {
     try {
       await mutate(
@@ -91,7 +77,7 @@ function TimerEntryNoteForm({ activeTask, setActiveTask }: TimerEntryNoteFormPro
           body: JSON.stringify({ id: entryId, note: noteString })
         }),
         {
-          optimisticUpdate(data) {
+          optimisticUpdate() {
             const tempTask = activeTask;
             if (tempTask.timer_info) {
               tempTask.timer_info.note = noteString;
@@ -136,11 +122,11 @@ function TimerEntryNoteForm({ activeTask, setActiveTask }: TimerEntryNoteFormPro
 type ActiveTaskItemProps = {
   activeTask: Task;
   setActiveTask: (task: Task | null) => void;
+  setSelectedItemId: (itemId: string) => void;
 };
-const ActiveTaskItem = ({ activeTask, setActiveTask }: ActiveTaskItemProps) => {
+const ActiveTaskItem = ({ activeTask, setActiveTask, setSelectedItemId }: ActiveTaskItemProps) => {
   const [timer, setTimer] = useCachedState<string>("timer","00:00:00");
-  const [selectedItemId, setSelectedItemId] = useCachedState<string>("selectedItemId","");
-  const { isLoading, data, mutate } = useFetch("https://app.timecamp.com/third_party/api/timer", {
+  const { mutate } = useFetch("https://app.timecamp.com/third_party/api/timer", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -187,8 +173,8 @@ const ActiveTaskItem = ({ activeTask, setActiveTask }: ActiveTaskItemProps) => {
           body: JSON.stringify({ action: "stop", task_id: task.task_id })
         }),
         {
-          shouldRevalidateAfter: true,
-          optimisticUpdate(data) {
+          shouldRevalidateAfter: false,
+          optimisticUpdate() {
             setActiveTask(null)
             setTimer("00:00:00")
             setSelectedItemId("")
@@ -235,14 +221,14 @@ export default function Command() {
   const [tasks, setTasks] = useCachedState<Task[]>("tasks",[]);
   const [activeTask, setActiveTask] = useCachedState<Task | null>("activeTask",null);
   const [selectedItemId, setSelectedItemId] = useCachedState<string>("selectedItemId","");
-  const { isLoading, data } = useFetch("https://app.timecamp.com/third_party/api/tasks?status=active", {
+  const { isLoading  } = useFetch("https://app.timecamp.com/third_party/api/tasks?status=active", {
     method: "GET",
     headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
     keepPreviousData: true,
     initialData: tasks,
     onData: curateTasks
   });
-  const { isLoading: isLoadingActiveTask, data: dataActiveTask, mutate: mutateActiveTask, revalidate: revalidateActiveTask } = useFetch("https://app.timecamp.com/third_party/api/timer", {
+  const { mutate: mutateActiveTask } = useFetch("https://app.timecamp.com/third_party/api/timer", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -255,7 +241,7 @@ export default function Command() {
     onData: getActiveTask
   });
 
-  function curateTasks(data) {
+  function curateTasks(data: TasksResponse) {
     const filteredData: Task[] = [];
 
     // find the last level of every task and build the heirchy in the task.display_name
@@ -313,10 +299,10 @@ export default function Command() {
     }
   }
 
-  function getActiveTask(data) {
+  function getActiveTask(data: TimerInfo) {
     if (data) {
       if (data.isTimerRunning) {
-        const findTask = tasks.find(task => task.task_id == data.task_id);
+        const findTask = tasks.find((task: Task) => task.task_id == data.task_id);
         if (findTask) {
           findTask.timer_info = data;
           setActiveTask(findTask);
@@ -333,7 +319,11 @@ export default function Command() {
     <List isLoading={isLoading} filtering={{ keepSectionOrder: true }} selectedItemId={selectedItemId} searchBarPlaceholder="Search Task">
       {activeTask ? (
         <List.Section title="Active Timer">
-          <ActiveTaskItem activeTask={activeTask} setActiveTask={setActiveTask} />
+          <ActiveTaskItem 
+            activeTask={activeTask} 
+            setActiveTask={setActiveTask}
+            setSelectedItemId={setSelectedItemId}
+          />
         </List.Section>
       ) : null}
       <List.Section title="Tasks">
