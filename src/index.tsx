@@ -60,7 +60,7 @@ function TimerEntryNoteForm({ activeTask, setActiveTask }: TimerEntryNoteFormPro
       Accept: "application/json",
       Authorization: `Bearer ${token}`,
     },
-    execute: false
+    execute: false,
   });
   const { pop } = useNavigation();
 
@@ -74,7 +74,7 @@ function TimerEntryNoteForm({ activeTask, setActiveTask }: TimerEntryNoteFormPro
             Accept: "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ id: entryId, note: noteString })
+          body: JSON.stringify({ id: entryId, note: noteString }),
         }),
         {
           optimisticUpdate() {
@@ -86,11 +86,11 @@ function TimerEntryNoteForm({ activeTask, setActiveTask }: TimerEntryNoteFormPro
             pop();
           },
           rollbackOnError: true,
-          shouldRevalidateAfter: false
-        }
+          shouldRevalidateAfter: false,
+        },
       );
     } catch (err) {
-      console.log('error updating task: ',err)
+      console.log("error updating task: ", err);
     }
   };
 
@@ -125,7 +125,7 @@ type ActiveTaskItemProps = {
   setSelectedItemId: (itemId: string) => void;
 };
 const ActiveTaskItem = ({ activeTask, setActiveTask, setSelectedItemId }: ActiveTaskItemProps) => {
-  const [timer, setTimer] = useCachedState<string>("timer","00:00:00");
+  const [timer, setTimer] = useCachedState<string>("timer", "00:00:00");
   const { mutate } = useFetch("https://app.timecamp.com/third_party/api/timer", {
     method: "POST",
     headers: {
@@ -134,7 +134,7 @@ const ActiveTaskItem = ({ activeTask, setActiveTask, setSelectedItemId }: Active
       Authorization: `Bearer ${token}`,
     },
     body: '{"action":"status"}',
-    execute: false
+    execute: false,
   });
 
   useEffect(() => {
@@ -170,20 +170,20 @@ const ActiveTaskItem = ({ activeTask, setActiveTask, setSelectedItemId }: Active
             Accept: "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ action: "stop", task_id: task.task_id })
+          body: JSON.stringify({ action: "stop", task_id: task.task_id }),
         }),
         {
           shouldRevalidateAfter: false,
           optimisticUpdate() {
-            setActiveTask(null)
-            setTimer("00:00:00")
-            setSelectedItemId("")
+            setActiveTask(null);
+            setTimer("00:00:00");
+            setSelectedItemId("");
           },
-          rollbackOnError: true
-        }
+          rollbackOnError: true,
+        },
       );
     } catch (err) {
-      console.log('error stopping task: ',err)
+      console.log("error stopping task: ", err);
     }
   }
 
@@ -218,15 +218,15 @@ const ActiveTaskItem = ({ activeTask, setActiveTask, setSelectedItemId }: Active
 };
 
 export default function Command() {
-  const [tasks, setTasks] = useCachedState<Task[]>("tasks",[]);
-  const [activeTask, setActiveTask] = useCachedState<Task | null>("activeTask",null);
-  const [selectedItemId, setSelectedItemId] = useCachedState<string>("selectedItemId","");
-  const { isLoading  } = useFetch("https://app.timecamp.com/third_party/api/tasks?status=active", {
+  const [tasks, setTasks] = useCachedState<Task[]>("tasks", []);
+  const [activeTask, setActiveTask] = useCachedState<Task | null>("activeTask", null);
+  const [selectedItemId, setSelectedItemId] = useCachedState<string>("selectedItemId", "");
+  const { isLoading } = useFetch("https://app.timecamp.com/third_party/api/tasks?status=active", {
     method: "GET",
     headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
     keepPreviousData: true,
     initialData: tasks,
-    onData: curateTasks
+    onData: curateTasks,
   });
   const { mutate: mutateActiveTask } = useFetch("https://app.timecamp.com/third_party/api/timer", {
     method: "POST",
@@ -238,7 +238,7 @@ export default function Command() {
     body: '{"action":"status"}',
     keepPreviousData: true,
     initialData: activeTask,
-    onData: getActiveTask
+    onData: getActiveTask,
   });
 
   function curateTasks(data: TasksResponse) {
@@ -278,7 +278,7 @@ export default function Command() {
     setTasks(filteredData);
   }
 
-  async function startTask (task: Task) {
+  async function startTask(task: Task) {
     try {
       await mutateActiveTask(
         fetch("https://app.timecamp.com/third_party/api/timer", {
@@ -288,14 +288,14 @@ export default function Command() {
             Accept: "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ action: "start", task_id: task.task_id })
+          body: JSON.stringify({ action: "start", task_id: task.task_id }),
         }),
         {
-          shouldRevalidateAfter: true
-        }
+          shouldRevalidateAfter: true,
+        },
       );
     } catch (err) {
-      console.log('error starting task: ',err)
+      console.log("error starting task: ", err);
     }
   }
 
@@ -309,21 +309,22 @@ export default function Command() {
           setSelectedItemId(findTask.task_id.toString());
         }
       } else if (!data.isTimerRunning) {
-        setActiveTask(null)
+        setActiveTask(null);
         setSelectedItemId("");
       }
     }
   }
 
   return (
-    <List isLoading={isLoading} filtering={{ keepSectionOrder: true }} selectedItemId={selectedItemId} searchBarPlaceholder="Search Task">
+    <List
+      isLoading={isLoading}
+      filtering={{ keepSectionOrder: true }}
+      selectedItemId={selectedItemId}
+      searchBarPlaceholder="Search Task"
+    >
       {activeTask ? (
         <List.Section title="Active Timer">
-          <ActiveTaskItem 
-            activeTask={activeTask} 
-            setActiveTask={setActiveTask}
-            setSelectedItemId={setSelectedItemId}
-          />
+          <ActiveTaskItem activeTask={activeTask} setActiveTask={setActiveTask} setSelectedItemId={setSelectedItemId} />
         </List.Section>
       ) : null}
       <List.Section title="Tasks">
