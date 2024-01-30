@@ -1,17 +1,10 @@
-import React, { useState, useEffect } from "react";
-import {
-  getPreferenceValues,
-  Icon,
-  List,
-  ActionPanel,
-  Action,
-  Color,
-} from "@raycast/api";
+import React, { useEffect } from "react";
+import { getPreferenceValues, Icon, List, ActionPanel, Action, Color } from "@raycast/api";
 import { useFetch, useCachedState } from "@raycast/utils";
 import fetch from "node-fetch";
 
 import TimerEntryNoteForm from "./TimeEntryNoteForm.tsx";
-import type { ActiveTaskItemProps, Preferences, Task, TimerInfo } from "../types.ts";
+import type { ActiveTaskItemProps, Preferences, Task } from "../types.ts";
 
 const preferences = getPreferenceValues<Preferences>();
 const token = preferences.timecamp_api_token;
@@ -109,4 +102,4 @@ const ActiveTaskItem = ({ activeTask, setActiveTask, setSelectedItemId }: Active
   );
 };
 
-export default ActiveTaskItem
+export default ActiveTaskItem;

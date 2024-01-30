@@ -1,17 +1,11 @@
 import React, { useState, useEffect } from "react";
-import {
-  useNavigation,
-  getPreferenceValues,
-  Icon,
-  List,
-  ActionPanel,
-  Action,
-} from "@raycast/api";
+import { useNavigation, getPreferenceValues, showToast, Toast, Icon, List, ActionPanel, Action } from "@raycast/api";
 import { useFetch, useCachedState } from "@raycast/utils";
 import fetch from "node-fetch";
 import ActiveTaskItem from "./components/ActiveTaskItem.tsx";
 import TimerEntryNoteForm from "./components/TimeEntryNoteForm.tsx";
-import type { Task, Preferences, TimerInfo, TasksResponse } from "./types.ts";
+import RecentEntries from "./components/RecentEntries.tsx";
+import type { Task, Preferences, TimerInfo, TasksResponse, Entry } from "./types.ts";
 
 const preferences = getPreferenceValues<Preferences>();
 const token = preferences.timecamp_api_token;
@@ -29,18 +23,21 @@ export default function Command() {
     initialData: tasks,
     onData: curateTasks,
   });
-  const { mutate: mutateActiveTask } = useFetch("https://app.timecamp.com/third_party/api/timer", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      Authorization: `Bearer ${token}`,
+  const { mutate: mutateActiveTask } = useFetch(
+    "https://app.timecamp.com/third_party/api/timer",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: '{"action":"status"}',
+      keepPreviousData: true,
+      initialData: activeTask,
+      onData: getActiveTask,
     },
-    body: '{"action":"status"}',
-    keepPreviousData: true,
-    initialData: activeTask,
-    onData: getActiveTask,
-  });
+  );
 
   useEffect(() => {
     if (activeTask && startedTask) {
@@ -86,9 +83,10 @@ export default function Command() {
     setTasks(filteredData);
   }
 
-  async function startTask(task: Task, editNote: boolean) {
+  async function startTask(task: Task | Entry, editNote: boolean) {
     setActiveTask(null);
     setStartedTask(false);
+
     try {
       await mutateActiveTask(
         fetch("https://app.timecamp.com/third_party/api/timer", {
@@ -107,8 +105,16 @@ export default function Command() {
       if (editNote) {
         setStartedTask(true);
       }
+      await showToast({
+        style: Toast.Style.Success,
+        title: "⏳ Task Started",
+      });
     } catch (err) {
       console.error("error starting task: ", err);
+      await showToast({
+        style: Toast.Style.Failure,
+        title: "❌ Error starting task",
+      });
     }
   }
 
@@ -140,6 +146,9 @@ export default function Command() {
           <ActiveTaskItem activeTask={activeTask} setActiveTask={setActiveTask} setSelectedItemId={setSelectedItemId} />
         </List.Section>
       ) : null}
+
+      <RecentEntries />
+
       <List.Section title="Tasks">
         {(tasks || []).map((task: Task) => {
           if (activeTask && activeTask.task_id == task.task_id) return null;

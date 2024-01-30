@@ -1,4 +1,3 @@
-
 export interface TasksResponse {
   [key: string]: Task;
 }
@@ -32,11 +31,6 @@ export type TimerInfo = {
   browser_plugin_button_hash?: string;
 };
 
-export type TimerEntryNoteFormProps = {
-  activeTask: Task;
-  setActiveTask: (task: Task | null) => void;
-};
-
 export type FormData = {
   note: string;
 };
@@ -49,4 +43,20 @@ export type ActiveTaskItemProps = {
   activeTask: Task;
   setActiveTask: (task: Task | null) => void;
   setSelectedItemId: (itemId: string) => void;
+};
+
+export type Entry = {
+  id: number;
+  task_id: string;
+  task_note: string;
+  last_modify: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  name: string;
+  color: string;
+  description: string;
+  project_id?: number;
+  project_name?: string;
+  breadcrumbs?: string;
 };
