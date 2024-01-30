@@ -2,17 +2,24 @@ import React, { useState, useEffect } from "react";
 import {
   useNavigation,
   getPreferenceValues,
-  closeMainWindow,
+  showHUD,
+  showToast,
   ActionPanel,
   Action,
   Form,
+  Toast,
 } from "@raycast/api";
 import { useFetch, useCachedState } from "@raycast/utils";
 import fetch from "node-fetch";
-import type { FormData, TimerEntryNoteFormProps, Preferences } from "../types.ts";
+import type { Task, FormData, Preferences } from "../types.ts";
 
 const preferences = getPreferenceValues<Preferences>();
 const token = preferences.timecamp_api_token;
+
+type TimerEntryNoteFormProps = {
+  activeTask: Task;
+  setActiveTask: (task: Task | null) => void;
+};
 
 function TimerEntryNoteForm({ activeTask, setActiveTask }: TimerEntryNoteFormProps) {
   const { mutate } = useFetch("https://app.timecamp.com/third_party/api/entries", {
@@ -47,7 +54,12 @@ function TimerEntryNoteForm({ activeTask, setActiveTask }: TimerEntryNoteFormPro
             setActiveTask(tempTask);
             pop();
             if (close) {
-              await closeMainWindow({ clearRootSearch: true });
+              await showHUD("✅ Entry Saved",{ clearRootSearch: true });
+            } else {
+              await showToast({
+                style: Toast.Style.Success,
+                title: "✅ Entry Saved",
+              })
             }
           },
           rollbackOnError: true,
@@ -56,6 +68,10 @@ function TimerEntryNoteForm({ activeTask, setActiveTask }: TimerEntryNoteFormPro
       );
     } catch (err) {
       console.error("error updating task: ", err);
+      await showToast({
+        style: Toast.Style.Failure,
+        title: "❌ Error saving the entry",
+      })
     }
   };
 
