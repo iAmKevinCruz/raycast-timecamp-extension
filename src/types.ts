@@ -61,3 +61,15 @@ export type Entry = {
   breadcrumbs?: string;
   breadcrumps?: string;
 };
+
+export type User = {
+  user_id: string;
+  email: string;
+  login_count: string;
+  login_time: string;
+  display_name: string;
+  time_zone: string;
+  root_group_id: string;
+  summary: string;
+  primary_group_id: string;
+};
