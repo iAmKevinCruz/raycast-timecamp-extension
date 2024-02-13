@@ -15,7 +15,7 @@ function RecentEntries() {
   const [selectedNote, setSelectedNote] = useState("");
   const [postClose, setPostClose] = useState(false);
   const { mutate: mutateRecentEntries } = useFetch(
-    `https://app.timecamp.com/third_party/api/entries?from=${getDateWindow().startDate}&to=${getDateWindow().endDate}&opt_fields=breadcrumps&include_project=true&user_id=${user ? user.user_id : null}`,
+    `https://app.timecamp.com/third_party/api/entries?from=${getDateWindow().startDate}&to=${getDateWindow().endDate}&opt_fields=breadcrumps&include_project=true&user_ids=${user ? user.user_id : null}`,
     {
       method: "GET",
       headers: {
