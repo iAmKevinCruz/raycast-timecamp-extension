@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { getPreferenceValues, Icon, List, ActionPanel, Action, Color } from "@raycast/api";
 import { useFetch, useCachedState } from "@raycast/utils";
 import fetch from "node-fetch";

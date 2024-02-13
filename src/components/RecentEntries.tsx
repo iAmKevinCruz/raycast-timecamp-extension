@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { getPreferenceValues, showHUD, showToast, Toast, Icon, List, ActionPanel, Action } from "@raycast/api";
 import { useFetch, useCachedState } from "@raycast/utils";
 import fetch from "node-fetch";
-import type { Task, Preferences, TimerInfo, Entry } from "../types.ts";
+import type { Task, Preferences, TimerInfo, Entry, User } from "../types.ts";
 
 const preferences = getPreferenceValues<Preferences>();
 const token = preferences.timecamp_api_token;
@@ -11,20 +11,31 @@ function RecentEntries() {
   const [tasks] = useCachedState<Task[]>("tasks", []);
   const [, setActiveTask] = useCachedState<Task | null>("activeTask", null);
   const [recentEntries, setRecentEntries] = useCachedState<Entry[]>("recentEntries", []);
+  const [user, setUser] = useCachedState<User | null>("user", null);
   const [selectedNote, setSelectedNote] = useState("");
   const [postClose, setPostClose] = useState(false);
-  useFetch(
-    `https://app.timecamp.com/third_party/api/entries?from=${getDateWindow().startDate}&to=${getDateWindow().endDate}&opt_fields=breadcrumps&include_project=true`,
+  const { mutate: mutateRecentEntries } = useFetch(
+    `https://app.timecamp.com/third_party/api/entries?from=${getDateWindow().startDate}&to=${getDateWindow().endDate}&opt_fields=breadcrumps&include_project=true&user_ids=${user ? user.user_id : null}`,
     {
       method: "GET",
       headers: {
         Accept: "application/json",
         Authorization: `Bearer ${token}`,
       },
+      execute: false,
       initialData: recentEntries,
       onData: initRecentEntries,
     },
   );
+  const { mutate: mutateUser } = useFetch("https://app.timecamp.com/third_party/api/user/%22%22", {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    execute: false,
+    onData: setUser,
+  });
   const { mutate: mutateTimer } = useFetch("https://app.timecamp.com/third_party/api/timer", {
     method: "POST",
     headers: {
@@ -45,6 +56,37 @@ function RecentEntries() {
     },
     execute: false,
   });
+
+  useEffect(() => {
+    async function getUser() {
+      try {
+        await mutateUser();
+      } catch (err) {
+        console.error("error getting user: ", err);
+        await showToast({
+          style: Toast.Style.Failure,
+          title: "❌ Error getting user",
+        });
+      }
+    }
+    async function getRecentEntries() {
+      try {
+        await mutateRecentEntries();
+      } catch (err) {
+        console.error("error getting entries: ", err);
+        await showToast({
+          style: Toast.Style.Failure,
+          title: "❌ Error getting entries",
+        });
+      }
+    }
+
+    if (!user) {
+      getUser();
+    } else {
+      getRecentEntries();
+    }
+  }, []);
 
   async function updateNote(data: TimerInfo) {
     try {
@@ -130,7 +172,10 @@ function RecentEntries() {
     const curatedData: Entry[] = [];
     for (let i = 0; i < data.length; i++) {
       const entry: Entry = data[i];
-      if (!curatedData.find((item: Entry) => item.description === entry.description)) {
+      if (
+        !curatedData.find((item: Entry) => item.description === entry.description && item.task_id === entry.task_id) &&
+        entry.description
+      ) {
         curatedData.push(entry);
       }
 
