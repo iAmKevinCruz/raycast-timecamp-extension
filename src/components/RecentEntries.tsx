@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { getPreferenceValues, showHUD, showToast, Toast, Icon, List, ActionPanel, Action } from "@raycast/api";
+import { getPreferenceValues, showHUD, showToast, Toast, Icon, List, ActionPanel, Action, Color } from "@raycast/api";
 import { useFetch, useCachedState } from "@raycast/utils";
 import fetch from "node-fetch";
 import type { Task, Preferences, TimerInfo, Entry, User } from "../types.ts";
@@ -188,7 +188,7 @@ function RecentEntries() {
         curatedData.push(entry);
       }
 
-      if (curatedData.length >= 4) break;
+      if (curatedData.length >= 5) break;
     }
     setRecentEntries(curatedData);
   }
@@ -222,6 +222,13 @@ function RecentEntries() {
             icon={{ source: Icon.Dot, tintColor: entry.color }}
             title={title}
             subtitle={subtitle}
+            accessories={[
+              entry.billable
+                ? {
+                    icon: { source: Icon.Wallet, tintColor: Color.Green },
+                  }
+                : {},
+            ]}
             actions={
               <ActionPanel title="Recent Entries">
                 <Action title="Resume Task & Close Window" onAction={() => startTimer(entry, true)} />
