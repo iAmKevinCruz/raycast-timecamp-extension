@@ -12,6 +12,7 @@ export type Task = {
   color?: string;
   timer_info?: TimerInfo;
   breadcrumb?: Crumb[];
+  entry?: Entry;
 };
 
 export type Crumb = {
@@ -33,6 +34,7 @@ export type TimerInfo = {
 
 export type FormData = {
   note: string;
+  billable: boolean;
 };
 
 export interface Preferences {
@@ -60,6 +62,7 @@ export type Entry = {
   project_name?: string;
   breadcrumbs?: string;
   breadcrumps?: string;
+  billable?: number | boolean;
 };
 
 export type User = {
