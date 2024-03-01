@@ -14,6 +14,7 @@ export default function Command() {
   const [tasks, setTasks] = useCachedState<Task[]>("tasks", []);
   const [activeTask, setActiveTask] = useCachedState<Task | null>("activeTask", null);
   const [selectedItemId, setSelectedItemId] = useCachedState<string>("selectedItemId", "");
+  const [dropdownFilter, setDropdownFilter] = useCachedState<string>("dropdownFilter", "all");
   const [recentEntries] = useCachedState<Entry[]>("recentEntries", []);
   const [startedTask, setStartedTask] = useState(false);
   const { push } = useNavigation();
@@ -149,6 +150,13 @@ export default function Command() {
       filtering={{ keepSectionOrder: true }}
       selectedItemId={selectedItemId}
       searchBarPlaceholder="Search Task"
+      searchBarAccessory={
+        <List.Dropdown tooltip="Task Display" onChange={(value) => setDropdownFilter(value)} storeValue={true}>
+          <List.Dropdown.Item title="All" value="all" />
+          <List.Dropdown.Item title="Recent Entries" value="recents" />
+          <List.Dropdown.Item title="Tasks" value="tasks" />
+        </List.Dropdown>
+      }
     >
       {activeTask ? (
         <List.Section title="Active Timer">
@@ -156,7 +164,7 @@ export default function Command() {
         </List.Section>
       ) : null}
 
-      <RecentEntries />
+      {dropdownFilter !== "tasks" ? <RecentEntries /> : null}
 
       <List.Section title="Tasks">
         {(sortedTasks || []).map((task: Task) => {

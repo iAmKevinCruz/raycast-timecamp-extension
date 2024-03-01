@@ -11,6 +11,7 @@ function RecentEntries() {
   const [tasks] = useCachedState<Task[]>("tasks", []);
   const [, setActiveTask] = useCachedState<Task | null>("activeTask", null);
   const [recentEntries, setRecentEntries] = useCachedState<Entry[]>("recentEntries", []);
+  const [dropdownFilter] = useCachedState<string>("dropdownFilter", "all");
   const [user, setUser] = useCachedState<User | null>("user", null);
   const [selectedEntry, setSelectedEntry] = useState<Entry | null>(null);
   const [postClose, setPostClose] = useState(false);
@@ -86,7 +87,7 @@ function RecentEntries() {
     } else {
       getRecentEntries();
     }
-  }, []);
+  }, [dropdownFilter]);
 
   async function updateNote(data: TimerInfo) {
     try {
@@ -188,7 +189,7 @@ function RecentEntries() {
         curatedData.push(entry);
       }
 
-      if (curatedData.length >= 5) break;
+      if (dropdownFilter === "all" && curatedData.length >= 5) break;
     }
     setRecentEntries(curatedData);
   }
@@ -215,6 +216,16 @@ function RecentEntries() {
         const title: string = entry.breadcrumps ? `${entry.breadcrumps} / ${entry.name}` : entry.name;
         const subtitle: string = entry.description;
 
+        const keywordsBillable = ["billable", "bill"];
+        const keywordsNonBillable = ["non-billable", "non-bill"];
+
+        const keywords = entry.description ? entry.description.split(" ") : [];
+        if (entry.billable) {
+          keywords.push(...keywordsBillable);
+        } else {
+          keywords.push(...keywordsNonBillable);
+        }
+
         return (
           <List.Item
             key={"entry-" + entry.id}
@@ -222,6 +233,7 @@ function RecentEntries() {
             icon={{ source: Icon.Dot, tintColor: entry.color }}
             title={title}
             subtitle={subtitle}
+            keywords={keywords}
             accessories={[
               entry.billable
                 ? {
