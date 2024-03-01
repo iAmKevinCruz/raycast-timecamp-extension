@@ -97,6 +97,11 @@ const ActiveTaskItem = ({ activeTask, setActiveTask, setSelectedItemId }: Active
       title={{ value: title, tooltip: truncated ? titleUnchanged : null }}
       subtitle={{ value: subtitle, tooltip: truncated ? subtitleUnchanged : null }}
       accessories={[
+        activeTask.entry && activeTask.entry.billable
+          ? {
+              icon: { source: Icon.Wallet, tintColor: Color.Green },
+            }
+          : {},
         {
           icon: { source: Icon.CommandSymbol, tintColor: Color.Red },
           tag: { value: " + S", color: Color.Red },

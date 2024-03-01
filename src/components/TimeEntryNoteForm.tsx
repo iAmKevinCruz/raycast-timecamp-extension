@@ -24,7 +24,8 @@ function TimerEntryNoteForm({ activeTask, setActiveTask }: TimerEntryNoteFormPro
   });
   const { pop } = useNavigation();
 
-  const updateNote = async (entryId: number | string, noteString: string, close: boolean) => {
+  const updateNote = async (entryId: number | string, values: FormData, close: boolean) => {
+    const noteString: string = values.note;
     try {
       await mutate(
         fetch("https://app.timecamp.com/third_party/api/entries", {
@@ -34,14 +35,20 @@ function TimerEntryNoteForm({ activeTask, setActiveTask }: TimerEntryNoteFormPro
             Accept: "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ id: entryId, note: noteString }),
+          body: JSON.stringify({ id: entryId, note: noteString, billable: values.billable }),
         }),
         {
           async optimisticUpdate() {
             const tempTask = activeTask;
+
             if (tempTask.timer_info) {
               tempTask.timer_info.note = noteString;
             }
+
+            if (tempTask.entry) {
+              tempTask.entry.billable = values.billable ? 1 : 0;
+            }
+
             setActiveTask(tempTask);
             pop();
             if (close) {
@@ -74,14 +81,14 @@ function TimerEntryNoteForm({ activeTask, setActiveTask }: TimerEntryNoteFormPro
           <Action.SubmitForm
             title="Save Edits & Close Window"
             onSubmit={(values: FormData) =>
-              updateNote(activeTask.timer_info ? activeTask.timer_info.entry_id : "", values.note, true)
+              updateNote(activeTask.timer_info ? activeTask.timer_info.entry_id : "", values, true)
             }
           />
           <Action.SubmitForm
             title="Save Edits"
             shortcut={{ modifiers: ["cmd"], key: "s" }}
             onSubmit={(values: FormData) =>
-              updateNote(activeTask.timer_info ? activeTask.timer_info.entry_id : "", values.note, false)
+              updateNote(activeTask.timer_info ? activeTask.timer_info.entry_id : "", values, false)
             }
           />
         </ActionPanel>
@@ -93,6 +100,11 @@ function TimerEntryNoteForm({ activeTask, setActiveTask }: TimerEntryNoteFormPro
         placeholder="Enter task note"
         autoFocus={true}
         defaultValue={activeTask.timer_info?.note}
+      />
+      <Form.Checkbox
+        id="billable"
+        label="Billable"
+        defaultValue={activeTask.entry ? (activeTask.entry.billable ? true : false) : true}
       />
     </Form>
   );
