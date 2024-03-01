@@ -89,6 +89,11 @@ const ActiveTaskItem = ({ activeTask, setActiveTask, setSelectedItemId }: Active
     subtitle = subtitle.substring(0, maxLength - title.length) + "...";
   }
 
+  const keywords: string[] = titleUnchanged.split(" ");
+  if (subtitleUnchanged) {
+    keywords.push(...subtitleUnchanged.split(" "));
+  }
+
   return (
     <List.Item
       key={activeTask.task_id}
@@ -96,6 +101,7 @@ const ActiveTaskItem = ({ activeTask, setActiveTask, setSelectedItemId }: Active
       icon={{ source: Icon.Stop, tintColor: activeTask.color }}
       title={{ value: title, tooltip: truncated ? titleUnchanged : null }}
       subtitle={{ value: subtitle, tooltip: truncated ? subtitleUnchanged : null }}
+      keywords={keywords}
       accessories={[
         activeTask.entry && activeTask.entry.billable
           ? {
