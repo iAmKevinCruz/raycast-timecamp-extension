@@ -5,7 +5,7 @@ import fetch from "node-fetch";
 import ActiveTaskItem from "./components/ActiveTaskItem.tsx";
 import TimerEntryNoteForm from "./components/TimeEntryNoteForm.tsx";
 import RecentEntries from "./components/RecentEntries.tsx";
-import type { Task, Preferences, TimerInfo, TasksResponse } from "./types.ts";
+import type { Entry, Task, Preferences, TimerInfo, TasksResponse } from "./types.ts";
 
 const preferences = getPreferenceValues<Preferences>();
 const token = preferences.timecamp_api_token;
@@ -14,6 +14,7 @@ export default function Command() {
   const [tasks, setTasks] = useCachedState<Task[]>("tasks", []);
   const [activeTask, setActiveTask] = useCachedState<Task | null>("activeTask", null);
   const [selectedItemId, setSelectedItemId] = useCachedState<string>("selectedItemId", "");
+  const [recentEntries] = useCachedState<Entry[]>("recentEntries", []);
   const [startedTask, setStartedTask] = useState(false);
   const { push } = useNavigation();
   const { isLoading } = useFetch("https://app.timecamp.com/third_party/api/tasks?status=active", {
@@ -124,8 +125,14 @@ export default function Command() {
     if (data) {
       if (data.isTimerRunning) {
         const findTask = tasks.find((task: Task) => task.task_id == data.task_id);
+        const findEntry = recentEntries.find((entry: Entry) => entry.id == data.entry_id);
         if (findTask) {
           findTask.timer_info = data;
+
+          if (findEntry) {
+            findTask.entry = findEntry;
+          }
+
           setActiveTask(findTask);
           setSelectedItemId(findTask.task_id.toString());
         }

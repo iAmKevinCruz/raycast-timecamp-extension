@@ -12,7 +12,7 @@ function RecentEntries() {
   const [, setActiveTask] = useCachedState<Task | null>("activeTask", null);
   const [recentEntries, setRecentEntries] = useCachedState<Entry[]>("recentEntries", []);
   const [user, setUser] = useCachedState<User | null>("user", null);
-  const [selectedNote, setSelectedNote] = useState("");
+  const [selectedEntry, setSelectedEntry] = useState<Entry | null>(null);
   const [postClose, setPostClose] = useState(false);
   const { mutate: mutateRecentEntries } = useFetch(
     `https://app.timecamp.com/third_party/api/entries?from=${getDateWindow().startDate}&to=${getDateWindow().endDate}&opt_fields=breadcrumps&include_project=true&user_ids=${user ? user.user_id : null}`,
@@ -98,14 +98,23 @@ function RecentEntries() {
             Accept: "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ id: data.entry_id, note: selectedNote }),
+          body: JSON.stringify({
+            id: data.entry_id,
+            note: selectedEntry ? selectedEntry.description : "",
+            billable: selectedEntry ? selectedEntry.billable : 1,
+          }),
         }),
         {
           async optimisticUpdate() {
             const tempTask: Task | undefined = tasks.find((task: Task) => task.task_id == data.task_id);
             if (tempTask) {
               tempTask.timer_info = data;
-              tempTask.timer_info.note = selectedNote;
+              tempTask.timer_info.note = selectedEntry ? selectedEntry.description : "";
+
+              if (selectedEntry) {
+                tempTask.entry = selectedEntry;
+              }
+
               setActiveTask(tempTask);
             }
 
@@ -118,7 +127,7 @@ function RecentEntries() {
               });
             }
 
-            setSelectedNote("");
+            setSelectedEntry(null);
             setPostClose(false);
           },
           rollbackOnError: true,
@@ -135,7 +144,7 @@ function RecentEntries() {
   }
 
   async function startTimer(entry: Entry, close: boolean) {
-    setSelectedNote(entry.description);
+    setSelectedEntry(entry);
     setPostClose(close);
     try {
       await mutateTimer(
@@ -158,7 +167,7 @@ function RecentEntries() {
       });
     } catch (err) {
       console.error("error starting task: ", err);
-      setSelectedNote("");
+      setSelectedEntry(null);
       setPostClose(false);
       await showToast({
         style: Toast.Style.Failure,
