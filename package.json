@@ -16,6 +16,14 @@
       "subtitle": "TimeCamp",
       "description": "Start/Stop tasks and edit active timer's notes",
       "mode": "view"
+    },
+    {
+      "name": "time-in-menu-bar",
+      "title": "Active Task in Menu Bar",
+      "subtitle": "TimeCamp",
+      "description": "Show active task timer in menu bar",
+      "mode": "menu-bar",
+      "interval": "30s"
     }
   ],
   "preferences": [

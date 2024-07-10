@@ -1,5 +1,15 @@
 import React, { useEffect, useState } from "react";
-import { getPreferenceValues, showHUD, showToast, Toast, Icon, List, ActionPanel, Action, Color } from "@raycast/api";
+import {
+  getPreferenceValues,
+  showHUD,
+  showToast,
+  Toast,
+  Icon,
+  List,
+  ActionPanel,
+  Action,
+  Color
+} from "@raycast/api";
 import { useFetch, useCachedState } from "@raycast/utils";
 import fetch from "node-fetch";
 import type { Task, Preferences, TimerInfo, Entry, User } from "../types.ts";
@@ -28,15 +38,18 @@ function RecentEntries() {
       onData: initRecentEntries,
     },
   );
-  const { mutate: mutateUser } = useFetch("https://app.timecamp.com/third_party/api/user/%22%22", {
-    method: "GET",
-    headers: {
-      Accept: "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    execute: false,
-    onData: setUser,
-  });
+  const { mutate: mutateUser } = useFetch(
+    "https://app.timecamp.com/third_party/api/user/%22%22",
+    {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      execute: false,
+      onData: setUser,
+    }
+  );
   const { mutate: mutateTimer } = useFetch("https://app.timecamp.com/third_party/api/timer", {
     method: "POST",
     headers: {

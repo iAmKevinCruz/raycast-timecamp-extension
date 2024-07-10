@@ -5,6 +5,7 @@ import fetch from "node-fetch";
 
 import TimerEntryNoteForm from "./TimeEntryNoteForm.tsx";
 import type { ActiveTaskItemProps, Preferences, Task } from "../types.ts";
+import { handleTimer } from "../utils.ts";
 
 const preferences = getPreferenceValues<Preferences>();
 const token = preferences.timecamp_api_token;
@@ -23,26 +24,7 @@ const ActiveTaskItem = ({ activeTask, setActiveTask, setSelectedItemId }: Active
   });
 
   useEffect(() => {
-    const startTimeDate = new Date(activeTask.timer_info ? activeTask.timer_info.start_time : "");
-
-    const interval = setInterval(() => {
-      const now = new Date();
-      const elapsedTime = now.getTime() - startTimeDate.getTime();
-
-      const seconds = Math.floor((elapsedTime / 1000) % 60);
-      const minutes = Math.floor((elapsedTime / (1000 * 60)) % 60);
-      const hours = Math.floor((elapsedTime / (1000 * 60 * 60)) % 24);
-
-      const formattedTime = [
-        hours.toString().padStart(2, "0"),
-        minutes.toString().padStart(2, "0"),
-        seconds.toString().padStart(2, "0"),
-      ].join(":");
-
-      setTimer(formattedTime);
-    }, 1000);
-
-    return () => clearInterval(interval);
+    handleTimer({ activeTask, setTimer });
   }, [activeTask]);
 
   async function stopTask(task: Task) {

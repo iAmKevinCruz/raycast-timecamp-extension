@@ -10,6 +10,41 @@ import type { Entry, Task, Preferences, TimerInfo, TasksResponse } from "./types
 const preferences = getPreferenceValues<Preferences>();
 const token = preferences.timecamp_api_token;
 
+export function getActiveTask({
+  data,
+  setActiveTask,
+  setSelectedItemId,
+  tasks,
+  recentEntries,
+}: {
+    data: TimerInfo,
+    setActiveTask: (task: Task | null) => void,
+    setSelectedItemId: (itemId: string) => void,
+    tasks: Task[],
+    recentEntries: Entry[]
+  }) {
+  console.log("data: ", data);
+  if (data) {
+    if (data.isTimerRunning) {
+      const findTask = tasks.find((task: Task) => task.task_id == data.task_id);
+      const findEntry = recentEntries.find((entry: Entry) => entry.id == data.entry_id);
+      if (findTask) {
+        findTask.timer_info = data;
+
+        if (findEntry) {
+          findTask.entry = findEntry;
+        }
+
+        setActiveTask(findTask);
+        setSelectedItemId(findTask.task_id.toString());
+      }
+    } else if (!data.isTimerRunning) {
+      setActiveTask(null);
+      setSelectedItemId("");
+    }
+  }
+}
+
 export default function Command() {
   const [tasks, setTasks] = useCachedState<Task[]>("tasks", []);
   const [activeTask, setActiveTask] = useCachedState<Task | null>("activeTask", null);
@@ -35,7 +70,13 @@ export default function Command() {
     body: '{"action":"status"}',
     keepPreviousData: true,
     initialData: activeTask,
-    onData: getActiveTask,
+    onData: (data:TimerInfo) => getActiveTask({
+      data,
+      setActiveTask,
+      setSelectedItemId,
+      tasks,
+      recentEntries,
+    }),
   });
   const { data: sortedTasks, visitItem: visitTask } = useFrecencySorting(tasks, {
     namespace: "tasks",
@@ -119,28 +160,6 @@ export default function Command() {
         style: Toast.Style.Failure,
         title: "❌ Error starting task",
       });
-    }
-  }
-
-  function getActiveTask(data: TimerInfo) {
-    if (data) {
-      if (data.isTimerRunning) {
-        const findTask = tasks.find((task: Task) => task.task_id == data.task_id);
-        const findEntry = recentEntries.find((entry: Entry) => entry.id == data.entry_id);
-        if (findTask) {
-          findTask.timer_info = data;
-
-          if (findEntry) {
-            findTask.entry = findEntry;
-          }
-
-          setActiveTask(findTask);
-          setSelectedItemId(findTask.task_id.toString());
-        }
-      } else if (!data.isTimerRunning) {
-        setActiveTask(null);
-        setSelectedItemId("");
-      }
     }
   }
 
