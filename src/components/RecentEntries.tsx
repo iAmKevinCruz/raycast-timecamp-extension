@@ -13,11 +13,13 @@ import {
 import { useFetch, useCachedState } from "@raycast/utils";
 import fetch from "node-fetch";
 import type { Task, Preferences, TimerInfo, Entry, User } from "../types.ts";
+import { getDisplayText } from "../utils.ts";
 
 const preferences = getPreferenceValues<Preferences>();
 const token = preferences.timecamp_api_token;
 
-function RecentEntries() {
+function RecentEntries({ searchText }: { searchText?: string }) {
+  const [filteredEntries, setFilteredEntries] = useState<Entry[]>([]);
   const [tasks] = useCachedState<Task[]>("tasks", []);
   const [, setActiveTask] = useCachedState<Task | null>("activeTask", null);
   const [recentEntries, setRecentEntries] = useCachedState<Entry[]>("recentEntries", []);
@@ -70,6 +72,28 @@ function RecentEntries() {
     },
     execute: false,
   });
+
+  useEffect(() => {
+    // manual filter so that the filter always happens on the whole recentEntries
+    // instead of only the visible hadful.
+    if (searchText) {
+      setFilteredEntries(recentEntries.filter(entry => {
+        const text = searchText.toLowerCase();
+
+        const { title, subtitle, keywords } = getDisplayText(entry);
+
+        if (
+          title.toLowerCase().includes(text)|| subtitle.toLowerCase().includes(text)|| keywords.includes(text)
+        ) {
+          return true
+        } else {
+          return false
+        }
+      }))
+    } else {
+      setFilteredEntries(recentEntries);
+    }
+  }, [searchText, recentEntries])
 
   useEffect(() => {
     async function getUser() {
@@ -201,8 +225,6 @@ function RecentEntries() {
       ) {
         curatedData.push(entry);
       }
-
-      if (dropdownFilter === "all" && curatedData.length >= 5) break;
     }
     setRecentEntries(curatedData);
   }
@@ -223,23 +245,12 @@ function RecentEntries() {
     };
   }
 
-  return recentEntries.length > 0 ? (
+  return filteredEntries.length > 0 ? (
     <List.Section title="Recent">
-      {(recentEntries || []).map((entry: Entry) => {
-        const title: string = entry.breadcrumps ? `${entry.breadcrumps} / ${entry.name}` : entry.name;
-        const subtitle: string = entry.description;
+      {(filteredEntries || []).map((entry: Entry, i: number) => {
+        const { title, subtitle, keywords } = getDisplayText(entry);
 
-        const keywordsBillable = ["billable", "bill"];
-        const keywordsNonBillable = ["non-billable", "non-bill"];
-
-        const keywords = entry.description ? entry.description.split(" ") : [];
-        if (entry.billable) {
-          keywords.push(...keywordsBillable);
-        } else {
-          keywords.push(...keywordsNonBillable);
-        }
-
-        return (
+        return (i <= 4 || dropdownFilter !== "all") && (
           <List.Item
             key={"entry-" + entry.id}
             id={"entry-" + entry.id.toString()}

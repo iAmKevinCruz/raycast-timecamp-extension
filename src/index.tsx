@@ -23,7 +23,6 @@ export function getActiveTask({
     tasks: Task[],
     recentEntries: Entry[]
   }) {
-  console.log("data: ", data);
   if (data) {
     if (data.isTimerRunning) {
       const findTask = tasks.find((task: Task) => task.task_id == data.task_id);
@@ -46,6 +45,7 @@ export function getActiveTask({
 }
 
 export default function Command() {
+  const [searchText, setSearchText] = useState<string>("");
   const [tasks, setTasks] = useCachedState<Task[]>("tasks", []);
   const [activeTask, setActiveTask] = useCachedState<Task | null>("activeTask", null);
   const [selectedItemId, setSelectedItemId] = useCachedState<string>("selectedItemId", "");
@@ -167,6 +167,7 @@ export default function Command() {
     <List
       isLoading={isLoading}
       filtering={{ keepSectionOrder: true }}
+      onSearchTextChange={setSearchText}
       selectedItemId={selectedItemId}
       searchBarPlaceholder="Search Task"
       searchBarAccessory={
@@ -183,7 +184,7 @@ export default function Command() {
         </List.Section>
       ) : null}
 
-      {dropdownFilter !== "tasks" ? <RecentEntries /> : null}
+      {dropdownFilter !== "tasks" ? <RecentEntries searchText={searchText} /> : null}
 
       <List.Section title="Tasks">
         {(sortedTasks || []).map((task: Task) => {

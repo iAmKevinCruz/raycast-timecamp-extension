@@ -58,3 +58,24 @@ export function getEllapsedTime({activeTask, context}: {
 
   return formattedTime;
 }
+
+export function getDisplayText(entry: Entry) {
+  const title: string = entry.breadcrumps ? `${entry.breadcrumps} / ${entry.name}` : entry.name;
+  const subtitle: string = entry.description;
+
+  const keywordsBillable = ["billable", "bill"];
+  const keywordsNonBillable = ["non-billable", "non-bill"];
+
+  const keywords = entry.description ? entry.description.toLowerCase().split(" ") : [];
+  if (entry.billable) {
+    keywords.push(...keywordsBillable);
+  } else {
+    keywords.push(...keywordsNonBillable);
+  }
+
+  return {
+    title,
+    subtitle,
+    keywords
+  }
+}
